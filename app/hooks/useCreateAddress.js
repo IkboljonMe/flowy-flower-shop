@@ -16,6 +16,8 @@ const useCreateAddress = async (details) => {
         })
     })
 
+    if (!response.ok) throw new Error('Could not save the address')
+
     const data = await response.json();
 
     return data

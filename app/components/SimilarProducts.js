@@ -24,8 +24,8 @@ export default function SimilarProducts() {
       setProducts([]);
       setIsLoading(false);
     } catch (error) {
-      console.log(error);
-      alert(error);
+      console.error(error);
+      setIsLoading(false);
     }
   };
 

@@ -5,13 +5,14 @@ export async function GET(req, context) {
     try {
         const { id } = context.params    
         const product = await prisma.products.findFirst({
-            where: { id: Number(id) }
+            where: { id: Number(id) || 0 }
         })
-        await prisma.$disconnect();
+
+        if (!product) return new NextResponse('Product not found', { status: 404 });
+
         return NextResponse.json(product);
     } catch (error) {
-        console.log(error);
-        await prisma.$disconnect();
-        return new NextResponse('Something went wrong', { status: 400 });
+        console.error(error);
+        return new NextResponse('Something went wrong', { status: 500 });
     }
 }

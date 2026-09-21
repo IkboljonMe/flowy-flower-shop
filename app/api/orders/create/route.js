@@ -1,3 +1,4 @@
+import Stripe from "stripe";
 import prisma from "@/app/libs/Prisma";
 import { NextResponse } from "next/server";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
@@ -9,37 +10,48 @@ export async function POST(req) {
     try {
         const { data: { user } } = await supabase.auth.getUser()
 
-        if (!user) throw Error()
+        if (!user) return new NextResponse('Unauthorized', { status: 401 });
 
         const body = await req.json();
+        if (!body.stripe_id) return new NextResponse('Missing payment id', { status: 400 });
 
-        const order = await prisma.orders.create({
+        // Check with Stripe that this payment is real, paid and belongs to this user
+        const stripe = new Stripe(process.env.STRIPE_SK_KEY || "");
+        const paymentIntent = await stripe.paymentIntents.retrieve(String(body.stripe_id));
+
+        if (paymentIntent.status !== 'succeeded' || paymentIntent.metadata.user_id !== user.id) {
+            return new NextResponse('Payment not valid', { status: 400 });
+        }
+
+        const existingOrder = await prisma.orders.findFirst({
+            where: { stripe_id: paymentIntent.id }
+        })
+        if (existingOrder) {
+            return new NextResponse('Order already exists', { status: 409 });
+        }
+
+        // Products and total come from the payment, not from the browser
+        const productIds = paymentIntent.metadata.product_ids.split(',').map(Number);
+
+        await prisma.orders.create({
             data: {
-                user_id: user?.id,
-                stripe_id: body.stripe_id,
+                user_id: user.id,
+                stripe_id: paymentIntent.id,
                 name: body.name,
                 address: body.address,
                 zipcode: body.zipcode,
                 city: body.city,
                 country: body.country,
-                total: Number(body.total),
+                total: paymentIntent.amount,
+                orderItem: {
+                    create: productIds.map(id => ({ product_id: id }))
+                }
             }
         })
-        
-        body.products.forEach(async prod => { 
-            await prisma.orderItem.create({
-                data: {
-                    order_id: order.id,
-                    product_id: Number(prod.id),
-                }
-            })
-        });
 
-        await prisma.$disconnect();
         return NextResponse.json('Order Complete', { status: 200 });
     } catch (error) {
-        console.log(error);
-        await prisma.$disconnect();
-        return new NextResponse('Something went wrong', { status: 400 });
+        console.error(error);
+        return new NextResponse('Something went wrong', { status: 500 });
     }
 }

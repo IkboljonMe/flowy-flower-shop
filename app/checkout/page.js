@@ -22,6 +22,7 @@ export default function Checkout() {
   let elements = useRef(null);
   let card = useRef(null);
   let clientSecret = useRef(null);
+  let stripeStarted = useRef(false);
 
   const [addressDetails, setAddressDetails] = useState({});
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
@@ -47,7 +48,12 @@ export default function Checkout() {
     };
 
     getAdddress();
-    setTimeout(() => stripeInit(), 300);
+
+    // Only create one payment, and only when the user is known
+    if (user?.id && !stripeStarted.current) {
+      stripeStarted.current = true;
+      setTimeout(() => stripeInit(), 300);
+    }
   }, [user]);
 
   const stripeInit = async () => {
@@ -57,8 +63,16 @@ export default function Checkout() {
 
     const response = await fetch("/api/stripe", {
       method: "POST",
-      body: JSON.stringify({ amount: cart.cartTotal() }),
+      body: JSON.stringify({
+        products: cart.getCart().map((product) => ({ id: product.id })),
+      }),
     });
+
+    if (!response.ok) {
+      toast.error("Could not start the payment", { autoClose: 3000 });
+      useIsLoading(false);
+      return;
+    }
     const result = await response.json();
 
     clientSecret.current = result.client_secret;
@@ -78,7 +92,7 @@ export default function Checkout() {
 
     card.current.mount("#card-element");
     card.current.on("change", function (event) {
-      document.querySelector("button").disabled = event.empty;
+      document.querySelector("#pay-button").disabled = event.empty;
       document.querySelector("#card-error").textContent = event.error
         ? event.error.message
         : "";
@@ -92,6 +106,11 @@ export default function Checkout() {
 
     if (Object.entries(addressDetails).length == 0) {
       showError("Please add shipping address!");
+      return;
+    }
+
+    if (!stripe.current || !clientSecret.current) {
+      showError("Payment is not ready yet, please wait");
       return;
     }
 
@@ -114,8 +133,6 @@ export default function Checkout() {
             zipcode: addressDetails.zipcode,
             city: addressDetails.city,
             country: addressDetails.country,
-            products: cart.getCart(),
-            total: cart.cartTotal(),
           }),
         });
 
@@ -124,8 +141,10 @@ export default function Checkout() {
           cart.clearCart();
           return router.push("/success");
         }
+        toast.error("Payment went through, but the order was not saved", {
+          autoClose: 3000,
+        });
       } catch (error) {
-        console.log(error);
         toast.error("Something went wrong?", { autoClose: 3000 });
       }
 
@@ -230,6 +249,7 @@ export default function Checkout() {
                     />
 
                     <button
+                      id="pay-button"
                       type="submit"
                       className="mt-4 bg-blue-600 text-lg w-full text-white font-semibold p-3 rounded-full"
                     >

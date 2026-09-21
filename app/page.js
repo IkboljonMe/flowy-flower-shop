@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import CarouselComp from "./components/CarouselComp";
 import Product from "./components/Product";
 import MainLayout from "./layouts/MainLayout";
 import useIsLoading from "@/app/hooks/useIsLoading";

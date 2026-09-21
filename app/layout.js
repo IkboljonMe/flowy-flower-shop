@@ -6,7 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Flowy",
-  description: "Flowy",
+  description: "Flowy - an online flower shop",
 };
 
 export default function RootLayout({ children }) {

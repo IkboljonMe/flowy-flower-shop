@@ -9,10 +9,10 @@ export async function GET() {
     try {
         const { data: { user } } = await supabase.auth.getUser()
 
-        if (!user) throw Error()
+        if (!user) return new NextResponse('Unauthorized', { status: 401 });
         
         const orders = await prisma.orders.findMany({
-            where: { user_id: user?.id },
+            where: { user_id: user.id },
             orderBy: { id: "desc" },
             include: { 
                 orderItem: {
@@ -20,16 +20,12 @@ export async function GET() {
                         product: true
                     }
                 }
-                
             }
         })
         
-        await prisma.$disconnect();
         return NextResponse.json(orders);
     } catch (error) {
-
-        console.log(error);
-        await prisma.$disconnect();
-        return new NextResponse('Something went wrong', { status: 400 });
+        console.error(error);
+        return new NextResponse('Something went wrong', { status: 500 });
     }
 }

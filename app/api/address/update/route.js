@@ -9,12 +9,13 @@ export async function POST(req) {
     try {
         const { data: { user } } = await supabase.auth.getUser()
 
-        if (!user) throw Error()
+        if (!user) return new NextResponse('Unauthorized', { status: 401 });
 
         const body = await req.json();
         
+        // Only update the address of the logged in user (user_id is unique)
         const res = await prisma.addresses.update({
-            where: { id: Number(body.addressId) },
+            where: { user_id: user.id },
             data: {
                 name: body.name,
                 address: body.address,
@@ -23,11 +24,9 @@ export async function POST(req) {
                 country: body.country,
             }
         })
-        await prisma.$disconnect();
         return NextResponse.json(res);
     } catch (error) {
-        console.log(error);
-        await prisma.$disconnect();
-        return new NextResponse('Something went wrong', { status: 400 });
+        console.error(error);
+        return new NextResponse('Something went wrong', { status: 500 });
     }
 }

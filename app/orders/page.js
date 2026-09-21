@@ -17,6 +17,7 @@ export default function TopMenu() {
     try {
       if (!user && !user?.id) return;
       const response = await fetch("/api/orders");
+      if (!response.ok) throw new Error("Could not load orders");
       const result = await response.json();
       setOrders(result);
       useIsLoading(false);
@@ -65,7 +66,7 @@ export default function TopMenu() {
 
                   <div className="pt-2">
                     <span className="font-bold mr-2">Total:</span>
-                    {order?.total / 100} PLN
+                    {(order?.total / 100).toFixed(2)} PLN
                   </div>
 
                   <div className="pt-2">

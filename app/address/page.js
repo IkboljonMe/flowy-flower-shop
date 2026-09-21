@@ -65,7 +65,6 @@ export default function Home() {
     }
 
     const validate = () => {
-        setError(null)
         setError({})
         let isError = false
 
@@ -93,7 +92,7 @@ export default function Home() {
         let isError = validate()
 
         if (isError) { 
-            toast.error(error.message, { autoClose: 3000 })
+            toast.error('Please fill in all the fields', { autoClose: 3000 })
             return 
         }
 
@@ -117,8 +116,7 @@ export default function Home() {
             router.push('/checkout')
         } catch (error) {
             setIsUpdatingAddress(false)
-            console.log(error)
-            alert(error)
+            toast.error('Could not save the address', { autoClose: 3000 })
         }
     }
 

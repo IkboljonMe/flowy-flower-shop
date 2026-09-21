@@ -14,11 +14,9 @@ export async function GET(req, context) {
                 },
             },
         });
-        await prisma.$disconnect();
         return NextResponse.json(items);
     } catch (error) {
-        console.log(error);
-        await prisma.$disconnect();
-        return new NextResponse('Something went wrong', { status: 400 });
+        console.error(error);
+        return new NextResponse('Something went wrong', { status: 500 });
     }
 }

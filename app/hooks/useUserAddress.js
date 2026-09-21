@@ -2,7 +2,7 @@ const useUserAddress = async () => {
     let address = {}
     let response = await fetch("/api/address/get")
 
-    if (response) {
+    if (response.ok) {
         let data = await response.json();
         if (data) address = data
     }
